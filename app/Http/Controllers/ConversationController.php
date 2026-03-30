@@ -26,7 +26,16 @@ final readonly class ConversationController
             ->orWhere('host_id', $user->id)
             ->with(['property', 'guest', 'host', 'latestMessage'])
             ->latest()
-            ->paginate(20);
+            ->paginate(20)
+            ->through(fn (Conversation $c) => [
+                ...$c->toArray(),
+                'other_participant' => $c->guest_id === $user->id ? $c->host : $c->guest,
+                'last_message' => $c->latestMessage,
+                'unread_count' => $c->messages()
+                    ->where('sender_id', '!=', $user->id)
+                    ->whereNull('read_at')
+                    ->count(),
+            ]);
 
         return Inertia::render('messages/index', [
             'conversations' => $conversations,
@@ -44,8 +53,16 @@ final readonly class ConversationController
 
         $conversation->load(['property', 'guest', 'host', 'messages.sender']);
 
+        $otherParticipant = $conversation->guest_id === $user->id
+            ? $conversation->host
+            : $conversation->guest;
+
         return Inertia::render('messages/show', [
-            'conversation' => $conversation,
+            'conversation' => [
+                ...$conversation->toArray(),
+                'other_participant' => $otherParticipant,
+            ],
+            'messages' => $conversation->messages,
         ]);
     }
 

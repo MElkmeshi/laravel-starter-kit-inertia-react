@@ -20,7 +20,16 @@ final readonly class MessageController
             ->where('host_id', $user->id)
             ->with(['property', 'guest', 'host', 'latestMessage'])
             ->latest()
-            ->paginate(20);
+            ->paginate(20)
+            ->through(fn (Conversation $c) => [
+                ...$c->toArray(),
+                'other_participant' => $c->guest,
+                'last_message' => $c->latestMessage,
+                'unread_count' => $c->messages()
+                    ->where('sender_id', '!=', $user->id)
+                    ->whereNull('read_at')
+                    ->count(),
+            ]);
 
         return Inertia::render('host/messages/index', [
             'conversations' => $conversations,

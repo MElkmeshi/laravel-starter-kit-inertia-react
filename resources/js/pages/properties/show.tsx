@@ -1,20 +1,21 @@
-import { Head, Link, usePage } from '@inertiajs/react';
-import { Heart, MapPin, Users } from 'lucide-react';
+import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { Heart, MapPin, MessageSquare, Users } from 'lucide-react';
 import { useState } from 'react';
+import InputError from '@/components/input-error';
 import { AmenityBadge } from '@/components/booking/amenity-badge';
 import { DateRangePicker } from '@/components/booking/date-range-picker';
 import { PhotoGallery } from '@/components/booking/photo-gallery';
 import { ReviewCard } from '@/components/booking/review-card';
 import { RoomTypeCard } from '@/components/booking/room-type-card';
 import { StarRating } from '@/components/booking/star-rating';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { useInitials } from '@/hooks/use-initials';
+import { Spinner } from '@/components/ui/spinner';
 import PublicLayout from '@/layouts/public-layout';
 import { cn } from '@/lib/utils';
 import type { PaginatedData, Property, Review, User } from '@/types';
@@ -29,7 +30,7 @@ type PropertyShowProps = {
 export default function PropertyShow({ property, reviews, isWishlisted }: PropertyShowProps) {
     const { auth } = usePage<{ auth: { user: User | null } }>().props;
     const user = auth?.user;
-    const getInitials = useInitials();
+
 
     const [selectedRoomId, setSelectedRoomId] = useState<string | null>(
         property.room_types.length > 0 ? property.room_types[0].id : null,
@@ -255,32 +256,50 @@ export default function PropertyShow({ property, reviews, isWishlisted }: Proper
                             </Card>
 
                             <Card>
-                                <CardContent className="flex items-center gap-3 pt-0">
-                                    <Avatar className="size-12">
-                                        <AvatarImage
-                                            src={property.host.avatar ?? undefined}
-                                            alt={property.host.name}
-                                        />
-                                        <AvatarFallback className="bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
-                                            {getInitials(property.host.name)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <p className="font-medium">Hosted by {property.host.name}</p>
-                                        {property.host.bio && (
-                                            <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
-                                                {property.host.bio}
-                                            </p>
-                                        )}
-                                        <p className="mt-0.5 text-xs text-muted-foreground">
-                                            <Users className="mr-1 inline size-3" />
-                                            Member since{' '}
-                                            {new Date(property.host.created_at).toLocaleDateString('en-US', {
-                                                month: 'long',
-                                                year: 'numeric',
-                                            })}
-                                        </p>
-                                    </div>
+                                <CardContent className="pt-0">
+                                    <h3 className="font-semibold">Contact Property</h3>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        Have questions? Send a message to the property management.
+                                    </p>
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button variant="outline" className="mt-3 w-full">
+                                                <MessageSquare className="mr-2 size-4" />
+                                                Send Inquiry
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>Send Inquiry to {property.name}</DialogTitle>
+                                            </DialogHeader>
+                                            <Form
+                                                action={`/properties/${property.id}/inquire`}
+                                                method="post"
+                                                className="flex flex-col gap-4"
+                                            >
+                                                {({ processing, errors }) => (
+                                                    <>
+                                                        <div className="grid gap-2">
+                                                            <Label htmlFor="inquiry-body">Your message</Label>
+                                                            <textarea
+                                                                id="inquiry-body"
+                                                                name="body"
+                                                                required
+                                                                rows={4}
+                                                                placeholder="Ask about availability, amenities, or anything else..."
+                                                                className="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
+                                                            />
+                                                            <InputError message={errors.body} />
+                                                        </div>
+                                                        <Button type="submit" disabled={processing}>
+                                                            {processing && <Spinner />}
+                                                            Send Message
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </Form>
+                                        </DialogContent>
+                                    </Dialog>
                                 </CardContent>
                             </Card>
                         </div>
